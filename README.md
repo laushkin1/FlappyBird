@@ -4,7 +4,7 @@ This is copy of Flappy Bird made with pygame, just for learning library
 This project is in progress
 
 ## Screenshots
-| Menu | Night |
+| Flappy | Bird |
 |------|------|
 | ![menu](screenshots/menu.png) | ![night](screenshots/night.png) |
 
