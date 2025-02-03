@@ -8,5 +8,6 @@ This project is in progress
 |------|------|------|
 | ![menu](screenshots/menu.png) | ![night](screenshots/night.png) | ![gameover](screenshots/gameover.png) |
 
+
 ## Author
 - [@laushkin1](https://github.com/laushkin1)
