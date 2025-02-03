@@ -4,8 +4,8 @@ This is copy of Flappy Bird made with pygame, just for learning library
 This project is in progress
 
 ## Screenshots
-![menu](data/screenshots/menu.png)
-![night](data/screenshots/night.png)
+![menu](screenshots/menu.png)
+![night](screenshots/night.png)
 
 
 ## Author
