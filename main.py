@@ -1,5 +1,9 @@
+from os import pread
 import pygame
+import sys
 from random import randint
+
+from pygame.image import load
 
 
 # settings.py file
@@ -33,24 +37,11 @@ class LoadFile():
             return pygame.transform.scale2x(pygame.image.load('flappy-bird-assets/sprites/pipe-red.png').convert_alpha())
         return pygame.transform.scale2x(pygame.image.load('flappy-bird-assets/sprites/pipe-green.png').convert_alpha())
 
-    def birds(self, blue=False, red=False):
-        if blue:
-            bird_sprites = []
-            bird_sprites.append(pygame.transform.scale2x(pygame.image.load('flappy-bird-assets/sprites/bluebird-downflap.png')))
-            bird_sprites.append(pygame.transform.scale2x(pygame.image.load('flappy-bird-assets/sprites/bluebird-midflap.png')))
-            bird_sprites.append(pygame.transform.scale2x(pygame.image.load('flappy-bird-assets/sprites/bluebird-upflap.png')))
-            return bird_sprites
-        if red:
-            bird_sprites = []
-            bird_sprites.append(pygame.transform.scale2x(pygame.image.load('flappy-bird-assets/sprites/redbird-downflap.png')))
-            bird_sprites.append(pygame.transform.scale2x(pygame.image.load('flappy-bird-assets/sprites/redbird-midflap.png')))
-            bird_sprites.append(pygame.transform.scale2x(pygame.image.load('flappy-bird-assets/sprites/redbird-upflap.png')))
-            return bird_sprites
-
+    def birds(self, color='yellow'):
         bird_sprites = []
-        bird_sprites.append(pygame.transform.scale2x(pygame.image.load('flappy-bird-assets/sprites/yellowbird-downflap.png')))
-        bird_sprites.append(pygame.transform.scale2x(pygame.image.load('flappy-bird-assets/sprites/yellowbird-midflap.png')))
-        bird_sprites.append(pygame.transform.scale2x(pygame.image.load('flappy-bird-assets/sprites/yellowbird-upflap.png')))
+        bird_sprites.append(pygame.transform.scale2x(pygame.image.load('flappy-bird-assets/sprites/' + color + 'bird-downflap.png')))
+        bird_sprites.append(pygame.transform.scale2x(pygame.image.load('flappy-bird-assets/sprites/' + color + 'bird-midflap.png')))
+        bird_sprites.append(pygame.transform.scale2x(pygame.image.load('flappy-bird-assets/sprites/' + color + 'bird-upflap.png')))
         return bird_sprites
 
 
@@ -60,6 +51,13 @@ class LoadFile():
             numers_list.append(pygame.transform.scale2x(pygame.image.load('flappy-bird-assets/sprites/' + str(i) + '.png')))
 
         return numers_list
+    
+
+    def game_over(self):
+        return pygame.transform.scale2x(pygame.image.load('flappy-bird-assets/sprites/gameover.png'))
+
+    def message(self):
+        return pygame.transform.scale2x(pygame.image.load('flappy-bird-assets/sprites/message.png'))
 
 
 
@@ -114,18 +112,17 @@ class Pipe(pygame.sprite.Sprite):
 # from load import loadFile
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self) -> None:
+    def __init__(self, color) -> None:
         super().__init__()
 
-        self.gravity = 0
-
         loadFile = LoadFile()
-        self.birds = loadFile.birds()
+        self.birds = loadFile.birds(color)
+
         self.bird_indx = 0
+        self.angle = 0
 
 
-        self.image = self.birds[self.bird_indx]
-        self.rect = self.image.get_rect(center = (100, SCREEN_HEIGHT/2))
+        self.new_game()
 
     def animation(self):
         self.bird_indx += 0.2
@@ -136,118 +133,91 @@ class Player(pygame.sprite.Sprite):
 
     def apply_gravity(self) -> None:
         self.gravity += 1
-        self.player_rotate(self.gravity*1.5)
+        if self.gravity <= 36:
+            self.player_rotate(self.gravity*2.5)
+        else: 
+            self.player_rotate(90)
         self.rect.y += self.gravity
 
 
-    def player_input(self) -> None:
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_SPACE]:
-            self.gravity = -15
-
 
     def player_rotate(self, angle) -> None:
+        self.angle = -angle
         self.image = pygame.transform.rotate(self.image, -angle)
 
     
     def new_game(self):
-        self.gravity = 0
+        self.gravity = -15
         self.image = self.birds[0]
         self.rect = self.image.get_rect(center = (100, SCREEN_HEIGHT/2))
+
 
 
     def update(self):
         self.animation()
         self.apply_gravity()
-        self.player_input()
 #
 
+# file scene.py
+# import pygame
+# from player import Player
+# from load import loadFile
+# from pipe import Pipe
 
 
-display = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
+colors = ['blue', 'red', 'yellow']
+bird_color = colors[randint(0, 2)]
+class BaseScene():
 
-class Game():
-    def __init__(self, display) -> None:
-        self.display = display
-        self.run_game = True
-        self.clock = pygame.time.Clock() 
+    score = 0
+    pipe_group_stop = pygame.sprite.Group()
+    player_y = 0
+    player_angle = 0
+    night = False
 
-        # Files
+    def __init__(self) -> None:
+        self.display = None
+        self.gameStateManager = None
+
+        self.player = pygame.sprite.GroupSingle()
+        self.player.add(Player(bird_color))
+        
+
         self.loadFile = LoadFile()
         self.background_day = self.loadFile.background()
         self.background_night = self.loadFile.background(False)
         self.background_base = self.loadFile.base()
-        
+        self.numbers = self.loadFile.numbers()
 
         self.base_pos_x = 0
         self.base_pos_y = SCREEN_HEIGHT-150
-        
+
         self.speed = 5
-        self.score = 0
-        self.checked_pipes = set()  
 
-        self.pipe_group = pygame.sprite.Group()
-        self.pipe_timer = pygame.USEREVENT + 1
-        self.pipe_timer_interval = 1500
-        pygame.time.set_timer(self.pipe_timer, self.pipe_timer_interval)
 
-        # Player
-        self.player = pygame.sprite.GroupSingle()
-        self.player.add(Player())
+        self.pipes = None
+        self.bird_xy = (66, 200)
+        self.birdimg = self.player.sprite.image
 
+   # def game_over_param(self, pipes, bird_xy, birdimg):
+   #     self.pipes = pipes
+   #     self.bird_xy = bird_xy
+   #     self.birdimg = birdimg
+
+    def set_param(self, display, gameStateManager):
+        self.display = display
+        self.gameStateManager = gameStateManager
 
 
     def run(self):
-        pygame.init()
-        while self.run_game:
-            self.speed += 0.001
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.run_game = False
+        pass
 
-                if event.type == self.pipe_timer:
-                    self.last_pipe = Pipe(int(self.speed))
-                    self.pipe_group.add(self.last_pipe)
-                    self.pipe_group.add(Pipe(int(self.speed), rotate=True, xy=(self.last_pipe.x, self.last_pipe.y)))
 
-                    # if self.pipe_timer_interval < 2000:
-                    #     self.pipe_timer_interval += 50
-                    #     pygame.time.set_timer(self.pipe_timer, self.pipe_timer_interval)
-
-            # Game Here
-
-            self.display.fill('white')
-            # Background
-            if self.speed > 10:
-                self.display.blit(self.background_night, (0, 0))
-            else:
-                self.display.blit(self.background_day, (0, 0))
-
-            # Player
-            self.player.draw(self.display)
-            self.player.update()
-
-            # Pipes
-            self.pipe_group.draw(self.display)
-            self.pipe_group.update()
-
-            # Base
-            self.move_base()
-
-            # Score
-            self.show_score()
-
-            # collision
-            self.collision()
-        
-            print(pygame.mouse.get_pos())
-            pygame.display.update()
-            self.clock.tick(FPS)
-
-            # # # # # # # 
-
-        pygame.quit()
+    def check_quit_event(self, event):
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
 
 
     def move_base(self):
@@ -260,22 +230,15 @@ class Game():
 
 
     def show_score(self):
-        for pipe in self.pipe_group:
-            if pipe.rect.x < 100 and pipe not in self.checked_pipes:
-                self.score += 0.5
-                self.checked_pipes.add(pipe)
-
-                
-        self.numbers = self.loadFile.numbers()
-        if self.score < 99:
-            if self.score <= 9:
+        if BaseScene.score < 99:
+            if BaseScene.score <= 9:
                 self.numbers_rect = self.numbers[0].get_rect(center=(self.display.get_width()/2, 100))
-                self.display.blit(self.numbers[int(self.score)], self.numbers_rect)
+                self.display.blit(self.numbers[int(BaseScene.score)], self.numbers_rect)
             else:
                 self.numbers_rect = self.numbers[0].get_rect(center=(self.display.get_width()/2-25, 100))
-                self.display.blit(self.numbers[int(self.score/10)], self.numbers_rect)
+                self.display.blit(self.numbers[int(BaseScene.score/10)], self.numbers_rect)
                 self.numbers_rect = self.numbers[0].get_rect(center=(self.display.get_width()/2+25, 100))
-                self.display.blit(self.numbers[int(self.score-int(self.score/10)*10)], self.numbers_rect)
+                self.display.blit(self.numbers[int(BaseScene.score-int(BaseScene.score/10)*10)], self.numbers_rect)
         else:
                 self.numbers_rect = self.numbers[0].get_rect(center=(self.display.get_width()/2-25, 100))
                 self.display.blit(self.numbers[9], self.numbers_rect)
@@ -283,20 +246,261 @@ class Game():
                 self.display.blit(self.numbers[9], self.numbers_rect)
 
 
+
+
+
+
+class MainGame(BaseScene):
+    def __init__(self) -> None:
+        super().__init__()
+
+        # Pipe timer
+        self.pipe_group = pygame.sprite.Group()
+        self.pipe_timer = pygame.USEREVENT + 1
+        self.pipe_timer_interval = 1500
+        pygame.time.set_timer(self.pipe_timer, self.pipe_timer_interval)
+        self.checked_pipes = set()  
+
+
+
+    def my_events(self):
+        for event in pygame.event.get():
+            self.check_quit_event(event)
+
+            if event.type == self.pipe_timer:
+                self.last_pipe = Pipe(int(self.speed))
+                self.pipe_group.add(self.last_pipe)
+                self.pipe_group.add(Pipe(int(self.speed), rotate=True, xy=(self.last_pipe.x, self.last_pipe.y)))
+                BaseScene.pipe_group_stop.add(self.pipe_group)
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    self.player.sprite.gravity = -15
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                self.player.sprite.gravity = -15
+
     
+    def run(self):
+
+        self.my_events()
+
+        self.speed += 0.001
+
+        if self.speed > 10:
+            BaseScene.night = True
+            self.display.blit(self.background_night, (0, 0))
+        else:
+            self.display.blit(self.background_day, (0, 0))
+        
+
+        self.pipe_group.draw(self.display)
+        self.pipe_group.update()
+
+        self.move_base()
+
+        self.player.draw(self.display)
+        self.player.update()
+
+        self.change_score()
+        self.show_score()
+
+        self.collision()
+
+    def change_score(self):
+        for pipe in self.pipe_group:
+            if pipe.rect.x < 100 and pipe not in self.checked_pipes:
+                BaseScene.score += 0.5
+                self.checked_pipes.add(pipe)
+
+                if self.player.sprite.rect.bottom <= 0:
+                    self.new_game()
+                    self.gameStateManager.set_state('game_over')
+                    BaseScene.score = 0
+
+
+
+
+
     def collision(self):
         if pygame.sprite.spritecollide(self.player.sprite, self.pipe_group, False) or \
-                self.player.sprite.rect.bottom >= 880:
-            self.speed = 5
-            self.pipe_group.empty()
-            self.player.sprite.new_game()
-            self.score = 0
-            self.checked_pipes = set()
+                                                    self.player.sprite.rect.bottom >= 850:
+            
+            BaseScene.player_y += self.player.sprite.rect.y
+            self.new_game()
+            self.gameStateManager.set_state('game_over')
 
+    
+    def new_game(self):
+        self.speed = 5
+        self.pipe_group.empty()
+        self.checked_pipes = set()
+        BaseScene.player_angle = self.player.sprite.angle
+        self.player.sprite.new_game()
+
+
+
+class GameOver(BaseScene):
+    def __init__(self) -> None:
+        super().__init__()
+        self.game_over = self.loadFile.game_over()
+
+    def my_events(self):
+        for event in pygame.event.get():
+            self.check_quit_event(event)
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    self.run_game = False
+                    self.gameStateManager.set_state('new_game')
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                self.run_game = False
+                self.gameStateManager.set_state('new_game')
+
+   
+    def run(self):
+        self.my_events()
+
+        self.speed = 0
+
+
+        if BaseScene.night:
+            self.display.blit(self.background_night, (0, 0))
+        else:
+            self.display.blit(self.background_day, (0, 0))
+
+        BaseScene.pipe_group_stop.draw(self.display)
+        self.move_base()
+        img = pygame.transform.rotate(self.player.sprite.image, BaseScene.player_angle)
+        if BaseScene.player_y > 820:
+            BaseScene.player_y = 820
+        if BaseScene.player_y < 820:
+            BaseScene.player_y += 15
+            BaseScene.player_angle -= 5
+            # if BaseScene.player_angle * -1 < 90:
+            #     BaseScene.player_angle -= 5
+            # else:
+            #     BaseScene.player_angle = -90
+        self.display.blit(img, (66, BaseScene.player_y))
+        
+
+        self.show_score()
+
+        self.display.blit(self.game_over, self.game_over.get_rect(center = (self.display.get_width()/2, 200)))
+
+
+
+
+class NewGame(BaseScene):
+    def __init__(self) -> None:
+        super().__init__()
+        self.message = self.loadFile.message()
+
+        self.fly_timer = pygame.USEREVENT + 2
+        pygame.time.set_timer(self.fly_timer, 1000)
+        self.up = True
+
+    def my_events(self):
+        for event in pygame.event.get():
+            self.check_quit_event(event)
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    self.run_game = False
+                    self.player.sprite.gravity = -15
+                    BaseScene.score = 0
+                    BaseScene.pipe_group_stop.empty()
+                    BaseScene.player_y = 0
+                    BaseScene.player_angle = 0
+                    BaseScene.night = False
+                    self.gameStateManager.set_state('main_game')
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                self.run_game = False
+                self.player.sprite.gravity = -15
+                self.player.sprite.rect.y = 488
+                BaseScene.score = 0
+                BaseScene.pipe_group_stop.empty()
+                BaseScene.player_y = 0
+                BaseScene.player_angle = 0
+                BaseScene.night = False
+                self.gameStateManager.set_state('main_game')
+
+            if event.type == self.fly_timer:
+                self.up = False if self.up else True
+                    
+
+ 
+
+    def run(self):
+        self.my_events()
+
+        self.display.blit(self.background_day, (0, 0))
+        self.player.draw(self.display)
+        if self.up:
+            self.player.sprite.rect.y -= 1
+        else:
+            self.player.sprite.rect.y += 1
+        self.player.sprite.animation()
+        self.display.blit(self.message, (105, 140))
+        self.move_base()
+
+
+
+class GameStateManager:
+    def __init__(self, currentState) -> None:
+        self.currentState = currentState
+
+    def get_state(self):
+        return self.currentState
+
+    def set_state(self, state):
+        self.currentState = state
+ 
+
+#
+
+
+
+
+
+
+class Game():
+    pygame.init()
+    pygame.display.set_caption(WINDOW_NAME)
+    display = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    def __init__(self) -> None:
+        self.clock = pygame.time.Clock() 
+        self.display = Game.display
+        
+        self.gameStateManager = GameStateManager('new_game')
+
+        self.new_game = NewGame()
+        self.main_game = MainGame()
+        self.game_over = GameOver()
+
+
+        self.states = {
+                'new_game': self.new_game,
+                'main_game': self.main_game,
+                'game_over': self.game_over
+                }
+
+        for scene in self.states:
+            self.states[scene].set_param(self.display, self.gameStateManager)
+
+    def run(self):
+        while True:
+            self.states[self.gameStateManager.get_state()].run()
+
+
+            pygame.display.update()
+            self.clock.tick(FPS)
 
 
 
 if __name__ == "__main__":
-    game = Game(display)
+    game = Game()
     game.run()
 
