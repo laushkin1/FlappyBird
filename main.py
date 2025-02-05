@@ -3,8 +3,6 @@ import pygame
 import sys
 from random import randint
 
-from pygame.image import load
-
 
 # settings.py file
 SCREEN_WIDTH = 576
@@ -17,9 +15,6 @@ WINDOW_NAME = "Flappy Bird"
 # import pygame
 
 class LoadFile():
-    def __init__(self) -> None:
-        ...
-
     def background(self, day = True):
         if day:
             return pygame.transform.scale2x(pygame.image.load('flappy-bird-assets/sprites/background-day.png').convert())
@@ -44,23 +39,17 @@ class LoadFile():
         bird_sprites.append(pygame.transform.scale2x(pygame.image.load('flappy-bird-assets/sprites/' + color + 'bird-upflap.png')))
         return bird_sprites
 
-
     def numbers(self):
         numers_list = []
         for i in range(10):
             numers_list.append(pygame.transform.scale2x(pygame.image.load('flappy-bird-assets/sprites/' + str(i) + '.png')))
-
         return numers_list
-    
 
     def game_over(self):
         return pygame.transform.scale2x(pygame.image.load('flappy-bird-assets/sprites/gameover.png'))
 
     def message(self):
         return pygame.transform.scale2x(pygame.image.load('flappy-bird-assets/sprites/message.png'))
-
-
-
 #
 
 # pipe.py file
@@ -92,17 +81,14 @@ class Pipe(pygame.sprite.Sprite):
         else:
             self.rect = self.image.get_rect(midtop = (self.x, self.y+300))
 
-    
+
     def destroy(self):
         if self.rect.x <= -100:
             self.kill()
 
-
     def update(self):
         self.rect.x -= self.speed
         self.destroy()
-
-
 
 #
 
@@ -121,7 +107,6 @@ class Player(pygame.sprite.Sprite):
         self.bird_indx = 0
         self.angle = 0
 
-
         self.new_game()
 
     def animation(self):
@@ -130,6 +115,8 @@ class Player(pygame.sprite.Sprite):
             self.bird_indx = 0
         self.image = self.birds[int(self.bird_indx)]
 
+    def player_jump(self) -> None:
+        self.gravity = -15
 
     def apply_gravity(self) -> None:
         self.gravity += 1
@@ -139,19 +126,14 @@ class Player(pygame.sprite.Sprite):
             self.player_rotate(90)
         self.rect.y += self.gravity
 
-
-
     def player_rotate(self, angle) -> None:
         self.angle = -angle
         self.image = pygame.transform.rotate(self.image, -angle)
-
     
     def new_game(self):
         self.gravity = -15
         self.image = self.birds[0]
         self.rect = self.image.get_rect(center = (100, SCREEN_HEIGHT/2))
-
-
 
     def update(self):
         self.animation()
@@ -275,10 +257,10 @@ class MainGame(BaseScene):
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    self.player.sprite.gravity = -15
+                    self.player.sprite.player_jump()
 
             if event.type == pygame.MOUSEBUTTONDOWN:
-                self.player.sprite.gravity = -15
+                self.player.sprite.player_jump()
 
     
     def run(self):
