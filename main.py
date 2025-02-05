@@ -4,13 +4,42 @@ import sys
 from random import randint, choice
 
 from pygame.constants import K_SPACE
+from pygame.mixer import Sound
 
 
+pygame.init()
 # settings.py file
 SCREEN_WIDTH = 576
 SCREEN_HEIGHT = 1024
 FPS = 60
 WINDOW_NAME = "Flappy Bird"
+SPEED = 5
+VOLUME = 100
+#
+
+# sound.py file
+# import pygame
+
+class Sounds():
+    def jump(self):
+        s = pygame.mixer.Sound('flappy-bird-assets/audio/wing.wav')
+        s.set_volume(VOLUME/100)
+        return s
+
+    def point(self):
+        s = pygame.mixer.Sound('flappy-bird-assets/audio/point.wav')
+        s.set_volume(VOLUME/100)
+        return s
+
+    def hit(self):
+        s = pygame.mixer.Sound('flappy-bird-assets/audio/hit.wav')
+        s.set_volume(VOLUME/100)
+        return s
+
+    def die(self):
+        s = pygame.mixer.Sound('flappy-bird-assets/audio/die.wav')
+        s.set_volume(VOLUME/100)
+        return s
 #
 
 # load.py file
@@ -98,6 +127,7 @@ class Pipe(pygame.sprite.Sprite):
 # import pygame
 # import settings # from settings import *
 # from load import loadFile
+# from sound import Sounds
 
 class Player(pygame.sprite.Sprite):
     player_y = SCREEN_HEIGHT/2
@@ -107,6 +137,9 @@ class Player(pygame.sprite.Sprite):
 
         loadFile = LoadFile()
         self.birds = loadFile.birds(color)
+
+        soundFile = Sounds()
+        self.jump_sound = soundFile.jump()
 
         self.bird_indx = 0
         self.angle = 0
@@ -122,6 +155,7 @@ class Player(pygame.sprite.Sprite):
         self.image = self.birds[int(self.bird_indx)]
 
     def player_jump(self) -> None:
+        self.jump_sound.play()
         self.gravity = -15
 
     def apply_gravity(self) -> None:
@@ -174,10 +208,15 @@ class BaseScene():
         self.background_base = self.loadFile.base()
         self.numbers = self.loadFile.numbers()
 
+        self.soundFile = Sounds()
+        self.point_sound = self.soundFile.point()
+        self.hit_sound = self.soundFile.hit()
+        self.die_sound = self.soundFile.die()
+
         self.base_pos_x = 0
         self.base_pos_y = SCREEN_HEIGHT-150
 
-        self.speed = 5
+        self.speed = SPEED
 
 
         self.pipes = None
@@ -241,6 +280,7 @@ class NewGame(BaseScene):
             if (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE) or \
                 event.type == pygame.MOUSEBUTTONDOWN:
                 self.run_game = False
+                self.player.sprite.jump_sound.play()
                 self.new_base_game()
                 self.gameStateManager.set_state('main_game')
 
@@ -314,24 +354,34 @@ class MainGame(BaseScene):
     def change_score(self):
         for pipe in self.pipe_group:
             if pipe.rect.x < 100 and pipe not in self.checked_pipes:
-                self.check_height()
-                self.checked_pipes.add(pipe)
-                BaseScene.score += 0.5
+                if self.check_height():
+                    self.checked_pipes.add(pipe)
+                    BaseScene.score += 0.5
+                    self.point_sound.play()
 
     def check_height(self):
         if self.player.sprite.rect.bottom <= 0:
+            Player.player_y = self.player.sprite.rect.y
+            self.hit_sound.play()
+            if Player.player_y < 800:
+                self.die_sound.play()
             self.new_game()
             self.gameStateManager.set_state('game_over')
+            return False
+        return True
 
     def collision(self):
         if pygame.sprite.spritecollide(self.player.sprite, self.pipe_group, False) or \
                                                     self.player.sprite.rect.bottom >= 850:
             Player.player_y = self.player.sprite.rect.y
+            self.hit_sound.play()
+            if Player.player_y < 800:
+                self.die_sound.play()
             self.new_game()
             self.gameStateManager.set_state('game_over')
     
     def new_game(self):
-        self.speed = 5
+        self.speed = SPEED
         self.pipe_group.empty()
         self.checked_pipes = set()
         self.player.sprite.new_game()
@@ -368,6 +418,8 @@ class GameOver(BaseScene):
             Player.player_y += 15
             Player.player_angle -= 5
 
+
+
         self.display.blit(img, (66, Player.player_y))
 
         self.show_score()
@@ -398,7 +450,6 @@ class GameStateManager:
 
 
 class Game():
-    pygame.init()
     pygame.display.set_caption(WINDOW_NAME)
     display = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     def __init__(self) -> None:
