@@ -2,11 +2,13 @@ import pygame
 import sys
 from random import choice
 
+from pygame.transform import scale
+
 from player import Player
 from load import LoadFile
 from pipe import Pipe
 from sound import Sounds
-from settings import SPEED, SCREEN_WIDTH, SCREEN_HEIGHT
+from settings import SCALE, SPEED, SCREEN_WIDTH, SCREEN_HEIGHT
 
 
 class BaseScene():
@@ -34,13 +36,13 @@ class BaseScene():
         self.die_sound = self.soundFile.die()
 
         self.base_pos_x = 0
-        self.base_pos_y = SCREEN_HEIGHT-150
+        self.base_pos_y = SCREEN_HEIGHT-(75*SCALE)
 
         self.speed = SPEED
 
 
         self.pipes = None
-        self.bird_xy = (66, 200)
+        self.bird_xy = (33*SCALE, 100*SCALE)
         self.birdimg = self.player.sprite.image
 
     def set_param(self, display, gameStateManager):
@@ -60,27 +62,27 @@ class BaseScene():
 
     def move_base(self):
         self.base_pos_x -= int(self.speed)
-        if self.base_pos_x <= -672:
+        if self.base_pos_x <= -336*SCALE:
             self.base_pos_x = 0
 
         self.display.blit(self.background_base, (self.base_pos_x, self.base_pos_y))
-        self.display.blit(self.background_base, (self.base_pos_x+672, self.base_pos_y))
+        self.display.blit(self.background_base, (self.base_pos_x+(336*SCALE), self.base_pos_y))
 
 
     def show_score(self):
         if BaseScene.score < 99:
             if BaseScene.score <= 9:
-                self.numbers_rect = self.numbers[0].get_rect(center=(self.display.get_width()/2, 100))
+                self.numbers_rect = self.numbers[0].get_rect(center=(self.display.get_width()/2, 50*SCALE))
                 self.display.blit(self.numbers[int(BaseScene.score)], self.numbers_rect)
             else:
-                self.numbers_rect = self.numbers[0].get_rect(center=(self.display.get_width()/2-25, 100))
+                self.numbers_rect = self.numbers[0].get_rect(center=(self.display.get_width()/2-(12*SCALE), 50*SCALE))
                 self.display.blit(self.numbers[int(BaseScene.score/10)], self.numbers_rect)
-                self.numbers_rect = self.numbers[0].get_rect(center=(self.display.get_width()/2+25, 100))
+                self.numbers_rect = self.numbers[0].get_rect(center=(self.display.get_width()/2+(12*SCALE), 50*SCALE))
                 self.display.blit(self.numbers[int(BaseScene.score-int(BaseScene.score/10)*10)], self.numbers_rect)
         else:
-                self.numbers_rect = self.numbers[0].get_rect(center=(self.display.get_width()/2-25, 100))
+                self.numbers_rect = self.numbers[0].get_rect(center=(self.display.get_width()/2-(12*SCALE), 50*SCALE))
                 self.display.blit(self.numbers[9], self.numbers_rect)
-                self.numbers_rect = self.numbers[0].get_rect(center=(self.display.get_width()/2+25, 100))
+                self.numbers_rect = self.numbers[0].get_rect(center=(self.display.get_width()/2+(12*SCALE), 50*SCALE))
                 self.display.blit(self.numbers[9], self.numbers_rect)
 
 
@@ -88,7 +90,7 @@ class NewGame(BaseScene):
     def __init__(self) -> None:
         super().__init__()
         self.message = self.loadFile.message()
-        self.speed = 3
+        self.speed = int(SPEED/2)
 
         self.fly_timer = pygame.USEREVENT + 1
         pygame.time.set_timer(self.fly_timer, 1000)
@@ -116,7 +118,7 @@ class NewGame(BaseScene):
         if self.up: self.player.sprite.rect.y -= 1
         else: self.player.sprite.rect.y += 1
         self.player.sprite.animation()
-        self.display.blit(self.message, (105, 140))
+        self.display.blit(self.message, (52*SCALE, 70*SCALE))
         self.move_base()
 
     def new_base_game(self):
@@ -131,7 +133,7 @@ class MainGame(BaseScene):
         # Pipe timer
         self.pipe_group = pygame.sprite.Group()
         self.pipe_timer = pygame.USEREVENT + 2
-        pygame.time.set_timer(self.pipe_timer, 1500)
+        pygame.time.set_timer(self.pipe_timer, 625*SCALE+625)
         self.checked_pipes = set()
 
     def my_events(self):
@@ -151,7 +153,7 @@ class MainGame(BaseScene):
     def run(self):
         self.my_events()
 
-        self.speed += 0.001
+        self.speed += 0.0005*SCALE
 
         if self.speed > 10:
             BaseScene.night = True
@@ -174,7 +176,7 @@ class MainGame(BaseScene):
 
     def change_score(self):
         for pipe in self.pipe_group:
-            if pipe.rect.x < 100 and pipe not in self.checked_pipes:
+            if pipe.rect.x < (50*SCALE) and pipe not in self.checked_pipes:
                 if self.check_height():
                     self.checked_pipes.add(pipe)
                     BaseScene.score += 0.5
@@ -184,7 +186,7 @@ class MainGame(BaseScene):
         if self.player.sprite.rect.bottom <= 0:
             Player.player_y = self.player.sprite.rect.y
             self.hit_sound.play()
-            if Player.player_y < 800:
+            if Player.player_y < 400*SCALE:
                 self.die_sound.play()
             self.new_game()
             self.gameStateManager.set_state('game_over')
@@ -193,10 +195,10 @@ class MainGame(BaseScene):
 
     def collision(self):
         if pygame.sprite.spritecollide(self.player.sprite, self.pipe_group, False) or \
-                                                    self.player.sprite.rect.bottom >= 850:
+                                                    self.player.sprite.rect.bottom >= 425*SCALE:
             Player.player_y = self.player.sprite.rect.y
             self.hit_sound.play()
-            if Player.player_y < 800:
+            if Player.player_y < 400*SCALE:
                 self.die_sound.play()
             self.new_game()
             self.gameStateManager.set_state('game_over')
@@ -234,17 +236,17 @@ class GameOver(BaseScene):
         self.move_base()
 
         img = pygame.transform.rotate(self.player.sprite.image, Player.player_angle)
-        if Player.player_y > 820:
-            Player.player_y = 820
-        if Player.player_y < 820:
-            Player.player_y += 15
+        if Player.player_y > 410*SCALE:
+            Player.player_y = 410*SCALE
+        if Player.player_y < 410*SCALE:
+            Player.player_y += 8*SCALE
             Player.player_angle -= 5
 
-        self.display.blit(img, (66, Player.player_y))
+        self.display.blit(img, (33*SCALE, Player.player_y))
 
         self.show_score()
 
-        self.display.blit(self.game_over, self.game_over.get_rect(center = (self.display.get_width()/2, 200)))
+        self.display.blit(self.game_over, self.game_over.get_rect(center = (self.display.get_width()/2, 100*SCALE)))
 
     def group_empty(self):
         BaseScene.player.empty()
