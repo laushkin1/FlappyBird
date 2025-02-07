@@ -11,7 +11,7 @@ from settings import (
     SCREEN_WIDTH, 
     SCREEN_HEIGHT,
     FPS,
-    WINDOW_NAME
+    WINDOW_NAME,
 )
 
 class Game():
