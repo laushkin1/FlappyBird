@@ -2,7 +2,7 @@ import pygame
 from random import randint
 
 from load import LoadFile
-from settings import SCREEN_WIDTH
+from settings import SCALE, SCREEN_WIDTH
 
 class Pipe(pygame.sprite.Sprite):
     def __init__(self, speed, rotate=False, xy=None) -> None:
@@ -18,8 +18,8 @@ class Pipe(pygame.sprite.Sprite):
             self.pipe = load.pipe(rotate=self.rotate)
 
         if xy is None:
-            self.x = randint(SCREEN_WIDTH, SCREEN_WIDTH+100)
-            self.y = randint(100, 500)
+            self.x = randint(SCREEN_WIDTH, SCREEN_WIDTH+(50*SCALE))
+            self.y = randint(50, 250) * SCALE
         else:
             self.x, self.y = xy
 
@@ -27,11 +27,11 @@ class Pipe(pygame.sprite.Sprite):
         if rotate:
             self.rect = self.image.get_rect(midbottom = (self.x, self.y))
         else:
-            self.rect = self.image.get_rect(midtop = (self.x, self.y+300))
+            self.rect = self.image.get_rect(midtop = (self.x, self.y+(150*SCALE)))
 
 
     def destroy(self):
-        if self.rect.x <= -100:
+        if self.rect.x <= -50*SCALE:
             self.kill()
 
     def update(self):
