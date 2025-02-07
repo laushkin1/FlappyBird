@@ -14,6 +14,7 @@ from settings import (
     WINDOW_NAME,
 )
 
+
 class Game():
 
     pygame.init()
