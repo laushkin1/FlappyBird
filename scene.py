@@ -2,8 +2,6 @@ import pygame
 import sys
 from random import choice
 
-from pygame.transform import scale
-
 from player import Player
 from load import LoadFile
 from pipe import Pipe
@@ -101,7 +99,7 @@ class NewGame(BaseScene):
             self.check_quit_event(event)
             
             if (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE) or \
-                event.type == pygame.MOUSEBUTTONDOWN:
+                (event.type == pygame.MOUSEBUTTONDOWN and pygame.mouse.get_pressed()[0]):
                 self.run_game = False
                 self.new_base_game()
                 self.player.sprite.player_jump()
@@ -147,7 +145,7 @@ class MainGame(BaseScene):
                 BaseScene.pipe_group_stop.add(self.pipe_group)
 
             if (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE) or \
-                event.type == pygame.MOUSEBUTTONDOWN:
+                (event.type == pygame.MOUSEBUTTONDOWN and pygame.mouse.get_pressed()[0]):
                 self.player.sprite.player_jump()
 
     def run(self):
@@ -220,7 +218,7 @@ class GameOver(BaseScene):
         for event in pygame.event.get():
             self.check_quit_event(event)
             if (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE) or \
-                event.type == pygame.MOUSEBUTTONDOWN:
+                (event.type == pygame.MOUSEBUTTONDOWN and pygame.mouse.get_pressed()[0]):
                 self.run_game = False
                 self.group_empty()
                 self.gameStateManager.set_state('new_game')
