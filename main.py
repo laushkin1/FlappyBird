@@ -1,13 +1,13 @@
 import pygame
 
-from scene import(
+from game.scene import(
     NewGame,
     MainGame,
     GameOver,
     GameStateManager
 )
 
-from settings import (
+from game.settings import (
     SCREEN_WIDTH, 
     SCREEN_HEIGHT,
     FPS,
