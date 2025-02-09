@@ -5,14 +5,14 @@ from game.load import LoadFile
 from game.settings import SCALE, SCREEN_WIDTH
 
 class Pipe(pygame.sprite.Sprite):
-    def __init__(self, speed, rotate=False, xy=None) -> None:
+    def __init__(self, speed, rotate=False, xy=None, night=False) -> None:
         super().__init__()
         self.speed = speed
         self.rotate = rotate
 
         load = LoadFile()
 
-        if self.speed > 10:
+        if night:
             self.pipe = load.pipe(rotate=self.rotate, red=True)
         else:
             self.pipe = load.pipe(rotate=self.rotate)
