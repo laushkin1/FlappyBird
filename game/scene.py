@@ -139,21 +139,24 @@ class MainGame(BaseScene):
             self.check_quit_event(event)
 
             if event.type == self.pipe_timer:
-                self.last_pipe = Pipe(int(self.speed))
+                self.last_pipe = Pipe(int(self.speed), night=BaseScene.night)
                 self.pipe_group.add(self.last_pipe)
-                self.pipe_group.add(Pipe(int(self.speed), rotate=True, xy=(self.last_pipe.x, self.last_pipe.y)))
+                self.pipe_group.add(Pipe(int(self.speed), rotate=True, xy=(self.last_pipe.x, self.last_pipe.y), night=BaseScene.night))
                 BaseScene.pipe_group_stop.add(self.pipe_group)
 
             if (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE) or \
                 (event.type == pygame.MOUSEBUTTONDOWN and pygame.mouse.get_pressed()[0]):
                 self.player.sprite.player_jump()
 
+            if BaseScene.score > 65:
+                BaseScene.night = True                   
+
     def run(self):
         self.my_events()
 
         self.speed += 0.0005*SCALE
 
-        if self.speed > 10:
+        if BaseScene.night:
             BaseScene.night = True
             self.display.blit(self.background_night, (0, 0))
         else:
