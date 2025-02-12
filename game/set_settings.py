@@ -18,5 +18,3 @@ if len(sys.argv) > 1:
     except ValueError:
         print("Error: SCALE must be an integer.")
         sys.exit(1)
-
-
